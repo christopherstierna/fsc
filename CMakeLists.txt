@@ -9,6 +9,9 @@ project(
 add_executable(
     fsc
     ${PROJECT_SOURCE_DIR}/source/main.cpp
+    ${PROJECT_SOURCE_DIR}/source/argument_parser.cpp
+    ${PROJECT_SOURCE_DIR}/source/command_executor.cpp
+    ${PROJECT_SOURCE_DIR}/source/utilities.cpp
 )
 
 set_target_properties(
@@ -17,6 +20,12 @@ set_target_properties(
     CXX_STANDARD 20
     CXX_EXTENSIONS OFF
     CXX_STANDARD_REQUIRED ON
+)
+
+target_include_directories(
+    fsc
+    PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
 )
 
 # CLANG DEBUG

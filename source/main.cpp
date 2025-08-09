@@ -1,6 +1,19 @@
 #include <iostream>
+#include <stdexcept>
 
-int main()
+#include "argument_parser.hpp"
+#include "command_executor.hpp"
+
+int main(int argc, char* argv[])
 {
-    std::cout << "fsc" << std::endl;
+    try
+    {
+        ArgumentParser argumentParser{ argc, argv };
+        CommandExecutor commandExecutor{ argumentParser };
+    }
+    catch (const std::exception& error)
+    {
+        std::cerr << error.what() << std::endl;
+    }
+    return 0;
 }
