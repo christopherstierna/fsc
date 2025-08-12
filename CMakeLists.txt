@@ -9,8 +9,10 @@ project(
 add_executable(
     fsc
     ${PROJECT_SOURCE_DIR}/source/main.cpp
+    ${PROJECT_SOURCE_DIR}/source/command_list.cpp
+    ${PROJECT_SOURCE_DIR}/source/commands.cpp
+    ${PROJECT_SOURCE_DIR}/source/command_functions.cpp
     ${PROJECT_SOURCE_DIR}/source/argument_parser.cpp
-    ${PROJECT_SOURCE_DIR}/source/command_executor.cpp
     ${PROJECT_SOURCE_DIR}/source/utilities.cpp
 )
 

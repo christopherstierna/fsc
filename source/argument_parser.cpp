@@ -1,81 +1,81 @@
 #include <iostream>
-#include <string>
-#include <vector>
 #include <stdexcept>
 #include <algorithm>
 
 #include "argument_parser.hpp"
+#include "command_list.hpp"
+#include "command_structure.hpp"
 
-ArgumentParser::ArgumentParser(int argumentCount, char* arguments[])
+ArgumentParser::ArgumentParser(int argc, char* argv[], const CommandList& commandList)
 {
-    if (argumentCount == 1)
+    if (argc == 1)
     {
-        throw std::runtime_error{ "No command entered. Use \"help\" to see a list of valid commands." };
+        throw std::runtime_error{ "No command provided, see \"help\"." };
     }
 
-    command = arguments[1];
+    command = argv[1];
 
-    if (command == "help")
+    if (!commandList.CommandStructureExists(command))
     {
-        if (argumentCount > 2)
-        {
-            parameters.emplace_back(arguments[2]);
-        }
-        return;
+        throw std::runtime_error{ "Unknown command, see \"help\"." };
     }
 
-    if (command == "create")
+    const CommandStructure& commandStructure{ commandList.GetCommandStructure(command) };
+    std::size_t parameterIndex{ 0 };
+    std::size_t argumentsReceived{ 0 };
+
+    for (std::size_t i{ 2 }; i < static_cast<std::size_t>(argc); ++i)
     {
-        if (argumentCount <= 2)
+        std::string argument{ argv[i] };
+        if (commandStructure.parameters.size() > parameterIndex)
         {
-            throw std::runtime_error{ "Missing parameter (path). Use \"help create\" to see command structure." };
+            if (argument[0] != '-')
+            {
+                arguments[commandStructure.parameters[parameterIndex].name] = argument;
+                argumentsReceived += 1;
+            }
+            else
+            {
+                if (commandStructure.parameters[parameterIndex].requirement == ParameterRequirement::OPTIONAL)
+                {
+                    AddFlag(argument, commandStructure);
+                }
+                else
+                {
+                    throw std::runtime_error{ "Expected parameter \"" + commandStructure.parameters[parameterIndex].name + "\", instead got flag \"" + argument + "\"." };
+                }
+            }
+            parameterIndex += 1;
         }
-        parameters.emplace_back(arguments[2]);
-        for (int i{ 3 }; i < argumentCount; ++i)
+        else
         {
-            flags.emplace_back(arguments[i]);
+            AddFlag(argument, commandStructure);
         }
-        return;
     }
 
-    if (command == "delete")
+    std::size_t argumentsRequired{ 0 };
+    for (const Parameter& parameter : commandStructure.parameters)
     {
-        if (argumentCount <= 2)
+        if (parameter.requirement == ParameterRequirement::REQUIRED)
         {
-            throw std::runtime_error{ "Missing parameter (path). Use \"help delete\" to see command structure." };
+            argumentsRequired += 1;
         }
-        parameters.emplace_back(arguments[2]);
-        for (int i{ 3 }; i < argumentCount; ++i)
-        {
-            flags.emplace_back(arguments[i]);
-        }
-        return;
     }
 
-    if (command == "list")
+    if (argumentsReceived < argumentsRequired)
     {
-        if (argumentCount > 2)
+        std::string errorMessage;
+        errorMessage += "Missing arguments: ";
+        for (std::size_t i{ argumentsReceived }; i < argumentsRequired;)
         {
-            parameters.emplace_back(arguments[2]);
+            if (commandStructure.parameters[i].requirement == ParameterRequirement::REQUIRED)
+            {
+                errorMessage += commandStructure.parameters[i].name + " ";
+                ++i;
+            }
         }
-        for (int i{ 3 }; i < argumentCount; ++i)
-        {
-            flags.emplace_back(arguments[i]);
-        }
-        return;
+        throw std::runtime_error{ errorMessage };
     }
-
-    if (command == "read")
-    {
-        if (argumentCount <= 2)
-        {
-            throw std::runtime_error{ "Missing parameter (path). Use \"help read\" to see command structure." };
-        }
-        parameters.emplace_back(arguments[2]);
-        return;
-    }
-
-    throw std::runtime_error{ "\"" + command + "\" is an invalid command. Use \"help\" to see a list of valid commands." };
 }
 
 std::string ArgumentParser::GetCommand() const noexcept
@@ -83,17 +83,38 @@ std::string ArgumentParser::GetCommand() const noexcept
     return command;
 }
 
-bool ArgumentParser::HasParameter(int index) const noexcept
+bool ArgumentParser::HasArgument(const std::string& parameterName) const noexcept
 {
-    return static_cast<int>(parameters.size()) > index;
+    return arguments.contains(parameterName);
 }
 
-std::string ArgumentParser::GetParameter(int index) const noexcept
+std::string ArgumentParser::GetArgument(const std::string& parameterName) const noexcept
 {
-    return parameters[static_cast<std::size_t>(index)];
+    return arguments.at(parameterName);
 }
 
-bool ArgumentParser::HasFlag(const std::string& flag) const noexcept
+bool ArgumentParser::HasFlag(const std::string& targetFlagName) const noexcept
 {
-    return std::find(flags.begin(), flags.end(), flag) != flags.end();
+    auto it{ std::find_if(flags.begin(), flags.end(),
+        [&targetFlagName](const std::string& flagName)
+        {
+            return targetFlagName == flagName;
+        }
+    ) };
+    return it != flags.end();
+}
+
+void ArgumentParser::AddFlag(const std::string& argument, const CommandStructure& commandStructure)
+{
+    auto it{ std::find_if(commandStructure.flags.begin(), commandStructure.flags.end(),
+        [&argument](const Flag& flag)
+        {
+            return flag.name == argument;
+        }
+    ) };
+    if (it == commandStructure.flags.end())
+    {
+        throw std::runtime_error{ "Command \"" + commandStructure.name + "\" does not accept flag \"" + argument + "\"." }; 
+    }
+    flags.push_back(argument);
 }

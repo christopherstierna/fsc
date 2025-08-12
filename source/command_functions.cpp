@@ -1,0 +1,302 @@
+#include <iostream>
+#include <filesystem>
+#include <stdexcept>
+#include <vector>
+#include <string>
+#include <fstream>
+
+#include "command_structure.hpp"
+#include "command_list.hpp"
+#include "commands.hpp"
+#include "utilities.hpp"
+
+namespace fsc
+{
+    void Help(const ArgumentParser& argumentParser)
+    {
+        auto OutputCommandStructure = [](const CommandStructure& commandStructure)
+        {
+            std::cout << "\n";
+            std::cout << "Command: " << commandStructure.name << "\n";
+            std::cout << "  Parameters:" << "\n";
+            if (commandStructure.parameters.size() > 0)
+            {
+                for (const Parameter& parameter : commandStructure.parameters)
+                {
+                    std::cout << "    (" << parameter.name << ") purpose: " << parameter.purpose << " required: ";
+                    if (parameter.requirement == ParameterRequirement::REQUIRED)
+                    {
+                        std::cout << "true";
+                    }
+                    else
+                    {
+                        std::cout << "false";
+                    }
+                    std::cout << "\n";
+                }
+            }
+            else
+            {
+                std::cout << "    None\n";
+            }
+
+            std::cout << "\n";
+            std::cout << "  Flags:" << "\n";
+            if (commandStructure.flags.size() > 0)
+            {
+                for (const Flag& flag : commandStructure.flags)
+                {
+                    std::cout << "    " << flag.name << " (" + flag.purpose << ")\n";
+                }
+            }
+            else
+            {
+                std::cout << "    None\n";
+            }
+            std::cout << std::flush;
+        };
+
+        const CommandList& commandList{ fsc::GetCommandList() };
+        if (argumentParser.HasArgument("command"))
+        {
+            std::string command{ argumentParser.GetArgument("command") };
+            if (commandList.CommandStructureExists(command))
+            {
+                OutputCommandStructure(commandList.GetCommandStructure(command));
+            }
+            else
+            {
+                throw std::runtime_error{ "Cannot help with unknown command \"" + command + "\"." };
+            }
+        }
+        else
+        {
+            std::cout << "Command structure: fsc <command> <parameters> <flags>\n";
+            const std::vector<CommandStructure>& allCommandStructures{ commandList.GetCommandStructures() };
+            for (const CommandStructure& commandStructure : allCommandStructures)
+            {
+                OutputCommandStructure(commandStructure);
+            }
+        }
+    }
+
+    void Create(const ArgumentParser& argumentParser)
+    {
+        std::filesystem::path path{ argumentParser.GetArgument("path") };
+        if (std::filesystem::exists(path))
+        {
+            throw std::runtime_error{ "Path already exists." };
+        }
+        path.make_preferred();
+
+        bool fileFlag{ argumentParser.HasFlag("-f") };
+        bool directoryFlag{ argumentParser.HasFlag("-d") };
+        
+        if (fileFlag && directoryFlag)
+        {
+            throw std::runtime_error{ "Flags \"-f\" and \"-d\" cannot be used at the same time." };
+        }
+
+        bool isFile{ false };
+        if (path.has_extension())
+        {
+            if (!directoryFlag)
+            {
+                isFile = true;
+            }
+        }
+        else
+        {
+            if (fileFlag)
+            {
+                isFile = true;
+            }
+        }
+
+        if (isFile)
+        {
+            std::filesystem::create_directories(path.parent_path());
+            std::ofstream file{ path };
+            if (!file || !file.is_open())
+            {
+                throw std::runtime_error{ "Error creating file." };
+            }
+
+            if (!argumentParser.HasFlag("-n"))
+            {
+                if (path.extension() == ".hpp" || path.extension() == ".inl" || path.extension() == ".ipp" || path.extension() == ".tpp" || path.extension() == ".hxx")
+                {
+                    file << "#pragma once\n\n";
+                }
+
+                if (path.extension() == ".h")
+                {
+                    std::string macroName{ path.filename().string() };
+                    for (char &character : macroName)
+                    {
+                        character = (character >= 'a' && character <= 'z') ? (character - 'a' + 'A') : character;
+                        if (!std::isalnum(static_cast<unsigned char>(character)))
+                        {
+                            character = '_';
+                        }
+                    }
+                    if (std::isdigit(static_cast<unsigned char>(macroName[0])))
+                    {
+                        macroName = "_" + macroName;
+                    }
+
+                    file << "#ifndef " + macroName + "\n#define " + macroName + "\n\n\n\n#endif";
+                }
+            }
+            std::cout << "Created file \"" << std::filesystem::canonical(path).string() << "\"." << std::endl;
+        }
+        else
+        {
+            std::filesystem::create_directories(path);
+            std::cout << "Created directory \"" << std::filesystem::canonical(path).string() << "\"." << std::endl;
+        }
+    }
+
+    void Delete(const ArgumentParser& argumentParser)
+    {
+        std::filesystem::path path{ argumentParser.GetArgument("path") };
+        if (!std::filesystem::exists(path))
+        {
+            throw std::runtime_error{ "Path does not exists." };
+        }
+        path = std::filesystem::canonical(path).make_preferred();
+
+        if (std::filesystem::is_directory(path))
+        {
+            if (std::filesystem::is_empty(path))
+            {
+                std::error_code error;
+                std::filesystem::remove(path, error);
+                if (error)
+                {
+                    throw std::runtime_error{ "Error: " + error.message() };
+                }
+                std::cout << "Deleted directory \"" + path.string() + "\"." << std::endl;
+            }
+            else
+            {
+                if (!argumentParser.HasFlag("-r"))
+                {
+                    throw std::runtime_error{ "Directory is not empty, use -r flag." };
+                }
+
+                if (!argumentParser.HasFlag("-s"))
+                {
+                    fsc_utilities::PromptConfirmation("Delete directory and contents? \"" + path.string() + "\"");
+                }
+
+                std::error_code error;
+                std::filesystem::remove_all(path, error);
+                if (error)
+                {
+                    throw std::runtime_error{ "Error: " + error.message() };
+                }
+                std::cout << "Deleted directory and contents \"" + path.string() + "\"." << std::endl;
+            }
+        }
+        else
+        {
+            std::error_code error;
+            std::filesystem::remove(path, error);
+            if (error)
+            {
+                throw std::runtime_error{ "Error: " + error.message() };
+            }
+            std::cout << "Deleted file \"" + path.string() + "\"." << std::endl;
+        }
+    }
+
+    void List(const ArgumentParser& argumentParser)
+    {
+        std::filesystem::path path;
+        if (argumentParser.HasArgument("path"))
+        {
+            path = argumentParser.GetArgument("path");
+        }
+        else
+        {
+            path = std::filesystem::current_path();
+        }
+
+        if (!std::filesystem::exists(path))
+        {
+            throw std::runtime_error{ "Path does not exist." };
+        }
+        path = std::filesystem::canonical(path).make_preferred();
+
+        if (!std::filesystem::is_directory(path))
+        {
+            throw std::runtime_error{ "Specified path is a file." };
+        }
+
+        bool filesOnly{ argumentParser.HasFlag("-f") };
+        bool directoriesOnly{ argumentParser.HasFlag("-d") };
+        
+        if (filesOnly && directoriesOnly)
+        {
+            throw std::runtime_error{ "Flags \"-f\" and \"-d\" cannot be used at the same time." };
+        }
+
+        auto ListPath = [filesOnly, directoriesOnly](std::filesystem::path path)
+        {
+            if (std::filesystem::is_directory(path))
+            {
+                if (!filesOnly)
+                {
+                    std::cout << "D: " + path.filename().string() << "\n";
+                }
+            }
+            else
+            {
+                if (!directoriesOnly)
+                {
+                    std::cout << "F: " + path.filename().string() << "\n";
+                }
+            }
+        };
+
+        try
+        {
+            if (argumentParser.HasFlag("-r"))
+            {
+                for (const auto& entry : std::filesystem::recursive_directory_iterator(path))
+                {
+                    ListPath(entry.path());    
+                }
+            }
+            else
+            {
+               for (const auto& entry : std::filesystem::directory_iterator(path))
+                {
+                    ListPath(entry.path());    
+                } 
+            }
+            std::cout << std::flush;
+        }
+        catch (const std::filesystem::filesystem_error& error)
+        {
+            throw std::runtime_error{ std::string{ "Error: " } + error.what() };
+        }
+    }
+
+    void Read(const ArgumentParser& argumentParser)
+    {
+        std::filesystem::path path{ argumentParser.GetArgument("path") };
+        if (!std::filesystem::exists(path))
+        {
+            throw std::runtime_error{ "Path does not exist." };
+        }
+
+        if (std::filesystem::is_directory(path))
+        {
+            throw std::runtime_error{ "Specified path is not a file." };
+        }
+
+        std::cout << fsc_utilities::ReadFile(path) << std::endl;
+    }
+}

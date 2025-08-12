@@ -1,15 +1,19 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "argument_parser.hpp"
-#include "command_executor.hpp"
+#include "commands.hpp"
+#include "command_list.hpp"
+#include "command_structure.hpp"
 
 int main(int argc, char* argv[])
 {
     try
     {
-        ArgumentParser argumentParser{ argc, argv };
-        CommandExecutor commandExecutor{ argumentParser };
+        fsc::InitializeCommands();
+        const CommandList& commandList{ fsc::GetCommandList() };
+        ArgumentParser argumentParser{ argc, argv, commandList };
+        CommandStructure commandStructure{ commandList.GetCommandStructure(argumentParser.GetCommand()) };
+        commandStructure.func(argumentParser);
     }
     catch (const std::exception& error)
     {
