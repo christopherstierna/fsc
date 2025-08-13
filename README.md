@@ -12,7 +12,7 @@ fsc uses CMake as a build system. Currently the CMakeLists.txt has configuration
 - Clang >= 12 or
 - Any other C++ 20 capable compiler
 
-### steps
+### Steps
 
 ```
 # Clone the repo
@@ -24,7 +24,7 @@ cd build
 
 cmake ..
 # or
-cmake -B . -S .. -G <GENERATOR OF CHOICE> -D CMAKE_CXX_COMPILER=<COMPILER OF CHOICE> -D CMAKE_BUILD_TYPE=<RELEASE OR DEBUG>
+cmake -B . -S .. -G <GENERATOR-OF-CHOICE> -D CMAKE_CXX_COMPILER=<COMPILER-OF-CHOICE> -D CMAKE_BUILD_TYPE=<Release-OR-Debug>
 
 cmake --build .
 ```
@@ -45,15 +45,15 @@ For help with a specific command use
 ```
 fsc help <command>
 ```
-### examples
+### Examples
 ```
 # creates a folder
 fsc create someFolder
 
-# creates a file.
+# creates a file called "someFile".
 # The -f flag specifies a file,
 # since the file created does not have a file extension
-fsc create file -f
+fsc create someFile -f
 
 # creates a .hpp file
 fsc create file.hpp
@@ -70,10 +70,10 @@ fsc list dir1/dir2 -r
 # renames foo.txt to bar.txt
 fsc rename foo.txt bar.txt
 
-# moves secrets.txt into mySecretStuff which is the parent of the current path
+# moves secrets.txt into mySecretStuff which resides in the parent of the current path
 fsc move secrets.txt ../mySecretStuff
 
-# clones yippie.txt to dir1
+# clones yippie.txt into dir1
 fsc clone yippie.txt dir1
 ```
 These are not all of the commands, to see a full list use "fsc help".
