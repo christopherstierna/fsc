@@ -30,11 +30,11 @@ target_include_directories(
     ${PROJECT_SOURCE_DIR}/include
 )
 
-# CLANG DEBUG
+# DEBUG
 target_compile_options(
     fsc
     PRIVATE
-    $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:Clang>>:
+    $<$<AND:$<CONFIG:Debug>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>>:
         -g;
         -O0;
         -Wall; -Wextra; -Wpedantic;
@@ -42,21 +42,21 @@ target_compile_options(
     >
 )
 
-# CLANG DEBUG
+# DEBUG
 target_link_options(
     fsc
     PRIVATE
-    $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:Clang>>:
+    $<$<AND:$<CONFIG:Debug>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>>:
         -fsanitize=address,undefined;
     >
 )
 
-# CLANG RELEASE
+# RELEASE
 target_compile_options(
     fsc
     PRIVATE
-    $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:Clang>>:
+    $<$<AND:$<CONFIG:Release>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>>:
         -O3;
-        -DNDEBUG
+        -DNDEBUG;
     >
 )
