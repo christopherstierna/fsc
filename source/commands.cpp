@@ -125,6 +125,15 @@ namespace fsc
                 std::function<void(const ArgumentParser&)>{ Rename }          
             }
         );
+
+        commandList.AddCommandStructure(
+            CommandStructure{
+                "version",
+                std::vector<Parameter>{},
+                std::vector<Flag>{},
+                std::function<void(const ArgumentParser&)>{ Version }          
+            }
+        );
     }
 
     const CommandList& GetCommandList() noexcept

@@ -409,4 +409,9 @@ namespace fsc
             throw std::runtime_error{ std::string{ "Error: " } + error.what() };
         }
     }
+
+    void Version(const ArgumentParser&)
+    {
+        std::cout << "fsc version: 1.0.0" << std::endl;
+    }
 }

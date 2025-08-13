@@ -12,4 +12,5 @@ namespace fsc
     void Clone(const ArgumentParser& argumentParser);
     void Move(const ArgumentParser& argumentParser);
     void Rename(const ArgumentParser& argumentParser);
+    void Version(const ArgumentParser& argumentParser);
 }
