@@ -87,7 +87,7 @@ namespace fsc
         {
             throw std::runtime_error{ "Path already exists." };
         }
-        path.make_preferred();
+        path = std::filesystem::absolute(path);
 
         bool fileFlag{ argumentParser.HasFlag("-f") };
         bool directoryFlag{ argumentParser.HasFlag("-d") };
@@ -187,7 +187,10 @@ namespace fsc
 
                 if (!argumentParser.HasFlag("-s"))
                 {
-                    fsc_utilities::PromptConfirmation("Delete directory and contents? \"" + path.string() + "\"");
+                    if (!fsc_utilities::PromptConfirmation("Delete directory and contents? \"" + path.string() + "\""))
+                    {
+                        return;
+                    }
                 }
 
                 std::error_code error;
@@ -298,5 +301,112 @@ namespace fsc
         }
 
         std::cout << fsc_utilities::ReadFile(path) << std::endl;
+    }
+
+    void Clone(const ArgumentParser& argumentParser)
+    {
+        std::filesystem::path target{ argumentParser.GetArgument("target") };
+        std::filesystem::path destination{ argumentParser.GetArgument("destination") };
+        bool validated{ fsc_utilities::ValidateMove(target, destination, argumentParser.HasFlag("-o"), argumentParser.HasFlag("-s")) };
+        if (!validated)
+        {
+            return;
+        }
+        target = std::filesystem::canonical(target);
+        destination = std::filesystem::canonical(destination);
+
+        try
+        {
+            if (std::filesystem::is_directory(target))
+            {
+                std::filesystem::copy(target, destination / target.filename(), std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
+            }
+            else
+            {
+                std::filesystem::copy(target, destination, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
+            }
+            std::cout << "Cloned \"" + target.filename().string() + "\" to \"" + destination.string() + "\"." << std::endl;
+        }
+        catch (const std::filesystem::filesystem_error& error)
+        {
+            throw std::runtime_error{ std::string{ "Error: " } + error.what() };
+        }
+    }
+
+    void Move(const ArgumentParser& argumentParser)
+    {
+        std::filesystem::path target{ argumentParser.GetArgument("target") };
+        std::filesystem::path destination{ argumentParser.GetArgument("destination") };
+        bool validated{ fsc_utilities::ValidateMove(target, destination, argumentParser.HasFlag("-o"), argumentParser.HasFlag("-s")) };
+        if (!validated)
+        {
+            return;
+        }
+        target = std::filesystem::canonical(target);
+        destination = std::filesystem::canonical(destination);
+
+        try
+        {
+            std::error_code error;
+            std::filesystem::rename(target, destination, error);
+            if (error)
+            {
+                if (std::filesystem::is_directory(target))
+                {
+                    std::filesystem::copy(target, destination / target.filename(), std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
+                }
+                else
+                {
+                    std::filesystem::copy(target, destination, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
+                }
+                std::filesystem::remove_all(target);
+            }
+            std::cout << "Moved \"" + target.filename().string() + "\" to \"" + destination.string() + "\"." << std::endl;
+        }
+        catch (const std::filesystem::filesystem_error& error)
+        {
+            throw std::runtime_error{ std::string{ "Error: " } + error.what() };
+        }
+    }
+
+    void Rename(const ArgumentParser& argumentParser)
+    {
+        std::filesystem::path target{ argumentParser.GetArgument("target") };
+        std::string newName{ argumentParser.GetArgument("new name") };
+
+        if (!std::filesystem::exists(target))
+        {
+            throw std::runtime_error{ "Target does not exist." };
+        }
+        target = std::filesystem::canonical(target);
+
+        std::filesystem::path newPath{ target.parent_path() / newName };
+        bool itemWithNameAlreadyExists{ std::filesystem::exists(newPath) };
+
+        if (itemWithNameAlreadyExists)
+        {
+            newPath = std::filesystem::canonical(newPath);
+            if (!argumentParser.HasFlag("-o"))
+            {
+                throw std::runtime_error{ "Item with name \"" + newName + "\" already exists. Use flag \"-o\" to overwrite." };
+            }
+            else if (!argumentParser.HasFlag("-s"))
+            {
+                if (!fsc_utilities::PromptConfirmation("Overwrite item? \"" + std::filesystem::canonical(newPath).string() + "\"."))
+                {
+                    return;
+                }
+            }
+        }
+
+        try
+        {
+            std::filesystem::rename(target, newPath); 
+            std::cout << "Renamed \"" + target.string() + "\" to " + newPath.filename().string() << "\".";
+        }
+        catch (const std::runtime_error& error)
+        {
+            throw std::runtime_error{ std::string{ "Error: " } + error.what() };
+        }
     }
 }

@@ -80,6 +80,51 @@ namespace fsc
                 std::function<void(const ArgumentParser&)>{ Read }          
             }
         );
+
+        commandList.AddCommandStructure(
+            CommandStructure{
+                "clone",
+                std::vector<Parameter>{
+                    Parameter{ "target", ParameterRequirement::REQUIRED, "Target to clone." },
+                    Parameter{ "destination", ParameterRequirement::REQUIRED, "Clone destination." }
+                },
+                std::vector<Flag>{
+                    Flag{ "-o", "Overwrite existing item in destination if clone has the same name." },
+                    Flag{ "-s", "Silence overwrite prompt." }
+                },
+                std::function<void(const ArgumentParser&)>{ Clone }          
+            }
+        );
+
+        commandList.AddCommandStructure(
+            CommandStructure{
+                "move",
+                std::vector<Parameter>{
+                    Parameter{ "target", ParameterRequirement::REQUIRED, "Target to move." },
+                    Parameter{ "destination", ParameterRequirement::REQUIRED, "Target destination." }
+                },
+                std::vector<Flag>{
+                    Flag{ "-o", "Overwrite existing item in destination if target has the same name." },
+                    Flag{ "-s", "Silence overwrite prompt." }
+                },
+                std::function<void(const ArgumentParser&)>{ Move }          
+            }
+        );
+
+        commandList.AddCommandStructure(
+            CommandStructure{
+                "rename",
+                std::vector<Parameter>{
+                    Parameter{ "target", ParameterRequirement::REQUIRED, "Target to rename." },
+                    Parameter{ "new name", ParameterRequirement::REQUIRED, "New name." }
+                },
+                std::vector<Flag>{
+                    Flag{ "-o", "Overwrite existing item in destination if target has the same name." },
+                    Flag{ "-s", "Silence overwrite prompt." }
+                },
+                std::function<void(const ArgumentParser&)>{ Rename }          
+            }
+        );
     }
 
     const CommandList& GetCommandList() noexcept
