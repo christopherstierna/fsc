@@ -48,8 +48,9 @@ namespace fsc
                     Parameter{ "path", ParameterRequirement::REQUIRED, "Path to delete." },
                 },
                 std::vector<Flag>{
-                    Flag{ "-r", "Recursively delete contents of a directory." },
-                    Flag{ "-s", "Silence confirmation prompt." }
+                    Flag{ "-r", "Recursively delete contents." },
+                    Flag{ "-s", "Silence confirmation prompt." },
+                    Flag{ "-c", "Delete contents only, requires \"-r\" flag." }
                 },
                 std::function<void(const ArgumentParser&)>{ Delete }
             }

@@ -187,19 +187,49 @@ namespace fsc
 
                 if (!argumentParser.HasFlag("-s"))
                 {
-                    if (!fsc_utilities::PromptConfirmation("Delete directory and contents? \"" + path.string() + "\""))
+                    std::string promptMessage;
+                    if (argumentParser.HasFlag("-c"))
+                    {
+                        promptMessage = "Delete contents of directory? \"" + path.string() + "\"";
+                    }
+                    else
+                    {
+                        promptMessage = "Delete directory and contents? \"" + path.string() + "\"";
+                    }
+                    if (!fsc_utilities::PromptConfirmation(promptMessage))
                     {
                         return;
                     }
                 }
 
                 std::error_code error;
-                std::filesystem::remove_all(path, error);
+                if (argumentParser.HasFlag("-c"))
+                {
+                    for (auto& entry : std::filesystem::directory_iterator(path))
+                    {
+                        std::filesystem::remove_all(entry.path(), error);
+                        if (error)
+                        {
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    std::filesystem::remove_all(path, error);
+                }
                 if (error)
                 {
                     throw std::runtime_error{ "Error: " + error.message() };
                 }
-                std::cout << "Deleted directory and contents \"" + path.string() + "\"." << std::endl;
+                if (argumentParser.HasFlag("-c"))
+                {
+                    std::cout << "Deleted contents of directory \"" + path.string() + "\"." << std::endl;
+                }
+                else
+                {
+                    std::cout << "Deleted directory and contents \"" + path.string() + "\"." << std::endl;
+                }
             }
         }
         else
