@@ -17,7 +17,7 @@ fsc uses CMake as a build system. Currently the CMakeLists.txt has compile confi
 
 ```
 # Clone the repo
-git clone https://christopherstierna/fsc.git
+git clone https://github.com/christopherstierna/fsc.git
 
 cd fsc
 mkdir build
