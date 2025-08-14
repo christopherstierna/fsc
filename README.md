@@ -4,12 +4,13 @@ fsc is a cross-platform CLI utility for quick and efficient file management, eli
 
 ## Building
 
-fsc uses CMake as a build system. Currently the CMakeLists.txt has configurations for Clang and GCC.
+fsc uses CMake as a build system. Currently the CMakeLists.txt has compile configurations for the Clang, GCC and MSVC compilers.
 
 ### Prerequisites
 - CMake >= 4.0.0
-- GCC >= 10 or
 - Clang >= 12 or
+- GCC >= 10 or
+- MSVC >= 16.11 or
 - Any other C++ 20 capable compiler
 
 ### Steps
@@ -24,7 +25,7 @@ cd build
 
 cmake ..
 # or
-cmake -B . -S .. -G <GENERATOR-OF-CHOICE> -D CMAKE_CXX_COMPILER=<COMPILER-OF-CHOICE> -D CMAKE_BUILD_TYPE=<Release-OR-Debug>
+cmake -B . -S .. -G <GENERATOR-OF-CHOICE> -D CMAKE_CXX_COMPILER=<COMPILER-OF-CHOICE> -D CMAKE_BUILD_TYPE=<Release-OR-Debug> -D ASAN_ENABLED=<ON OR OFF>
 
 cmake --build .
 ```
