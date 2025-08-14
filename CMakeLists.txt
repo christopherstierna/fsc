@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 4.0.0)
 
+option(ASAN_ENABLED "Enable AddressSanitizer" OFF)
+
 project(
     fsc
     LANGUAGES
@@ -30,33 +32,51 @@ target_include_directories(
     ${PROJECT_SOURCE_DIR}/include
 )
 
-# DEBUG
+# Release
 target_compile_options(
     fsc
     PRIVATE
-    $<$<AND:$<CONFIG:Debug>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>>:
-        -g;
-        -O0;
-        -Wall; -Wextra; -Wpedantic;
-        -Wconversion; -Wshadow; -Wundef; -Werror;
+
+    # GCC/Clang
+    $<$<AND:$<CONFIG:Release>,$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>>:
+        -O3 -flto -DNDEBUG
+    >
+
+    # MSVC
+    $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:
+        /O2 /Ob2 /GL /W4 /DNDEBUG
     >
 )
 
-# DEBUG
-target_link_options(
-    fsc
-    PRIVATE
-    $<$<AND:$<CONFIG:Debug>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>>:
-        -fsanitize=address,undefined;
-    >
-)
-
-# RELEASE
+# Debug
 target_compile_options(
     fsc
     PRIVATE
-    $<$<AND:$<CONFIG:Release>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>>:
-        -O3;
-        -DNDEBUG;
+
+    # GCC/Clang
+    $<$<AND:$<CONFIG:Debug>,$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>>:
+        -g -O0 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wundef -Werror -fno-omit-frame-pointer
+    >
+
+    # MSVC
+    $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:
+        /Zi /Od /W4 /RTC1
     >
 )
+
+if (ASAN_ENABLED)
+    target_link_options(
+        fsc
+        PRIVATE
+
+        # GCC/Clang
+        $<$<AND:$<CONFIG:Debug>,$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>>:
+            -fsanitize=address,undefined
+        >
+
+        # MSVC
+        $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:
+            /fsanitize=address
+        >
+    )
+endif()
